@@ -2,24 +2,18 @@ package com.dicoding.latihannetworkingdenganretrofittujuan
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.View
-import android.view.inputmethod.InputMethod
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+import com.dicoding.latihannetworkingdenganretrofittujuan.ViewModel.MainViewModel
 import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.CustomerReviewsItem
-import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.PostReviewResponse
 import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.Restaurant
-import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.RestaurantResponse
-import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.retrofit.ApiConfig
 import com.dicoding.latihannetworkingdenganretrofittujuan.databinding.ActivityMainBinding
 import com.dicoding.latihannetworkingdenganretrofittujuan.ui.ReviewAdapater
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 class MainActivity : AppCompatActivity() {
 
@@ -27,8 +21,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     companion object {
-        private const val TAG = "MainActivity"
-        private const val RESTAURANT_ID = "uewq1zg2zlskfw1e867"  // ID restoran yang akan diambil datanya
+        const val TAG = "MainActivity"
+        const val RESTAURANT_ID =
+            "uewq1zg2zlskfw1e867"  // ID restoran yang akan diambil datanya
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,71 +33,34 @@ class MainActivity : AppCompatActivity() {
 
         supportActionBar?.hide()  // Menyembunyikan ActionBar
 
-        // Mengatur RecyclerView untuk menampilkan ulasan restoran
-        val layoutManager = LinearLayoutManager(this)
-        binding.rvReview.layoutManager = layoutManager
-        val itemDecoration = DividerItemDecoration(this, layoutManager.orientation)
-        binding.rvReview.addItemDecoration(itemDecoration)
+        val mainViewModel = ViewModelProvider(
+            this,
+            ViewModelProvider.NewInstanceFactory()
+        ).get(MainViewModel::class.java)
 
-        findRestaurant()  // Memulai proses pencarian data restoran
+        mainViewModel.restaurant.observe(this) { restaurant ->
+            setRestaurantData(restaurant)
 
-        binding.btnSend.setOnClickListener{ view ->
-            postReview(binding.edReview.text.toString())
-            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            // Mengatur RecyclerView untuk menampilkan ulasan restoran
+            val layoutManager = LinearLayoutManager(this)
+            binding.rvReview.layoutManager = layoutManager
+            val itemDecoration = DividerItemDecoration(this, layoutManager.orientation)
+            binding.rvReview.addItemDecoration(itemDecoration)
 
+            mainViewModel.listReview.observe(this) { consumerReviews ->
+                setReviewData(consumerReviews)
+            }
+            mainViewModel.isLoading.observe(this) { isLoading ->
+                showLoading(isLoading)
+            }
+
+            // Memulai proses pencarian data restoran
+            binding.btnSend.setOnClickListener { view ->
+                mainViewModel.postReview(binding.edReview.text.toString())
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(view.windowToken, 0)
+            }
         }
-    }
-
-    private fun postReview(review: String){
-        showLoading(true)
-        val client = ApiConfig.getApiService().postReview(RESTAURANT_ID,"MATEO ",review)
-        client.enqueue(object :Callback<PostReviewResponse>{
-            override fun onResponse(
-                call: Call<PostReviewResponse>,
-                response: Response<PostReviewResponse>
-            ) {
-                showLoading(false)
-                val responseBody = response.body()
-                if (response.isSuccessful && responseBody != null){
-                    setReviewData(responseBody.customerReviews)
-                } else {
-                    Log.e(TAG,"onFailure: ${response.message()}")
-                }
-            }
-
-            override fun onFailure(call: Call<PostReviewResponse>, t: Throwable) {
-                showLoading(false)
-                Log.e(TAG,"onFailure: ${t.message}")
-            }
-        })
-    }
-
-    // Fungsi untuk mengambil data restoran dari API
-    private fun findRestaurant() {
-        showLoading(true)  // Menampilkan loading saat data sedang diambil
-        val client = ApiConfig.getApiService().getRestaurant(RESTAURANT_ID)
-        client.enqueue(object : Callback<RestaurantResponse> {  // Callback untuk menangani respons dari API
-            override fun onResponse(
-                call: Call<RestaurantResponse>,  // Panggilan API
-                response: Response<RestaurantResponse>  // Respons dari API
-            ) {
-                showLoading(false)  // Menyembunyikan loading setelah respons diterima
-                if (response.isSuccessful) {  // Memeriksa apakah respons berhasil
-                    val responseBody = response.body()  // Mendapatkan body dari respons
-                    if (responseBody != null) {  // Memeriksa apakah body tidak null
-                        setRestaurantData(responseBody.restaurant)  // Mengatur data restoran ke UI
-                        setReviewData(responseBody.restaurant.customerReviews)  // Mengatur data ulasan ke UI
-                    }
-                } else {
-                    Log.e(TAG, "onFailure: ${response.message()}")  // Log pesan kesalahan jika respons gagal
-                }
-            }
-
-            override fun onFailure(call: Call<RestaurantResponse>, t: Throwable) {  // Jika panggilan API gagal
-                showLoading(false)  // Menyembunyikan loading
-                Log.e(TAG, "onFailure: ${t.message}")  // Log pesan kesalahan
-            }
-        })
     }
 
     // Fungsi untuk mengatur data restoran ke tampilan UI
