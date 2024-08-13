@@ -14,6 +14,7 @@ import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.Customer
 import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.Restaurant
 import com.dicoding.latihannetworkingdenganretrofittujuan.databinding.ActivityMainBinding
 import com.dicoding.latihannetworkingdenganretrofittujuan.ui.ReviewAdapater
+import com.google.android.material.snackbar.Snackbar
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,6 +33,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         supportActionBar?.hide()  // Menyembunyikan ActionBar
+
+
 
         val mainViewModel = ViewModelProvider(
             this,
@@ -53,6 +56,15 @@ class MainActivity : AppCompatActivity() {
             mainViewModel.isLoading.observe(this) { isLoading ->
                 showLoading(isLoading)
             }
+           mainViewModel.snackbarText.observe(this,{
+               it.getContentIfNotHandled()?.let { snackBarText ->
+                   Snackbar.make(
+                       window.decorView.rootView,
+                       snackBarText,
+                       Snackbar.LENGTH_SHORT
+                   ).show()
+               }
+           })
 
             // Memulai proses pencarian data restoran
             binding.btnSend.setOnClickListener { view ->

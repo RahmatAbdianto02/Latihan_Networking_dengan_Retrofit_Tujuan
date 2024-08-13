@@ -4,11 +4,13 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import com.dicoding.latihannetworkingdenganretrofittujuan.MainActivity.Companion.RESTAURANT_ID
 import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.CustomerReviewsItem
 import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.PostReviewResponse
 import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.Restaurant
 import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.RestaurantResponse
 import com.dicoding.latihannetworkingdenganretrofittujuan.data.response.retrofit.ApiConfig
+import com.dicoding.utils.Event
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -23,6 +25,9 @@ class MainViewModel : ViewModel() {
 
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
+
+  private val _snackBarText = MutableLiveData<Event<String>>()
+    val snackbarText: LiveData<Event<String>>  = _snackBarText
 
     companion object {
         private const val TAG = "MainViewModel"
@@ -82,6 +87,7 @@ class MainViewModel : ViewModel() {
                 if (response.isSuccessful && responseBody != null) {
                     // Mengganti setReviewData dengan mengupdate _listReview
                     _listReview.value = responseBody.customerReviews
+                    _snackBarText.value = Event(response.body()?.message.toString())
                 } else {
                     // Mengganti MainActivity.TAG dengan TAG yang ada di companion object MainViewModel
                     Log.e(TAG, "onFailure: ${response.message()}")
